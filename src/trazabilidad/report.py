@@ -1,5 +1,7 @@
 """Informe local; nunca implica que el tercero haya recibido los datos."""
 from datetime import datetime
+from collections import Counter
+from decimal import Decimal, ROUND_HALF_UP
 from zoneinfo import ZoneInfo
 from pathlib import Path
 import csv
@@ -12,6 +14,14 @@ def local_now():
         return datetime.now(ZoneInfo('America/Bogota')).isoformat(timespec='seconds')
     except Exception:
         return datetime.now().astimezone().isoformat(timespec='seconds')
+
+
+def display_tm(value):
+    """Formato legible de hasta 6 decimales: JSON retiene el valor original íntegro."""
+    number = Decimal(str(value)).quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP)
+    if number == 0:
+        return '0'
+    return format(number, 'f').rstrip('0').rstrip('.')
 
 
 def write_report(plan: Plan, report_dir, phase='VALIDACION', verification=None, site_date=None):
@@ -51,14 +61,19 @@ def write_report(plan: Plan, report_dir, phase='VALIDACION', verification=None, 
     ]
     for label, key in [('Plantaciones Propias', 'propias'), ('Plantaciones de Terceros', 'terceros')]:
         info = plan.totals.get(key, {})
-        lines.append(f'| {label} | {info.get("registros", 0)} | {info.get("tm_original", 0)} | {info.get("tm_original_redondeada_al_final", 0)} | {info.get("tm_normalizada", 0)} | {info.get("diferencia", 0)} |')
+        lines.append(f'| {label} | {info.get("registros", 0)} | {display_tm(info.get("tm_original", 0))} | {info.get("tm_original_redondeada_al_final", 0)} | {info.get("tm_normalizada", 0)} | {display_tm(info.get("diferencia", 0))} |')
     lines += ['', f'**Polígonos pendientes:** {payload["poligonos_pendientes"]}',
               f'**Bloqueos:** {len(plan.blockers)}',
               f'**Avisos:** {len(plan.issues)-len(plan.blockers)}',
               '', '## Decisiones humanas']
     lines += ['- ' + x for x in plan.decisions] or ['- Ninguna.']
-    lines += ['', '## Incidencias']
-    lines += [f'- {i.level} · {i.sheet} · fila {i.row} · {i.field}: {i.message}' for i in plan.issues] or ['- Ninguna.']
+    lines += ['', '## Errores bloqueantes']
+    lines += [f'- ERROR · {i.sheet} · fila {i.row} · {i.field}: {i.message}' for i in plan.blockers] or ['- Ninguno.']
+    lines += ['', '## Avisos agrupados']
+    warning_counts = Counter((i.sheet, i.field, i.message) for i in plan.issues if i.level != 'ERROR')
+    lines += [f'- {sheet} · {field}: {message} ({count} casos)' for (sheet, field, message), count in sorted(warning_counts.items())] or ['- Ninguno.']
+    lines += ['', 'El detalle de los avisos, incluyendo sus filas originales, permanece en el CSV y el JSON locales.',
+              'Las cifras originales y diferencias se presentan con hasta 6 decimales para su lectura; el JSON conserva toda la precisión leída de Excel.']
     if verification:
         lines += ['', '## Verificación del formulario',
                   f'- Campos conformes: {verification.get("conformes", 0)}',
