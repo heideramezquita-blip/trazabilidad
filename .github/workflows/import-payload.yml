@@ -1,8 +1,7 @@
 name: Importar versión 0.1.0
 on:
   push:
-    paths:
-      - 'source_payload.b64'
+    paths: ['source_payload.b64']
 permissions:
   contents: write
 jobs:
@@ -10,34 +9,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extraer fuente revisada
+      - name: Extraer archivos fuente
         run: |
           python - <<'PY'
-          import base64
-          import io
-          import shutil
-          import zipfile
+          import base64, io, shutil, zipfile
           from pathlib import Path
-
           raiz = Path.cwd()
-          payload = raiz / "source_payload.b64"
-          with zipfile.ZipFile(io.BytesIO(base64.b64decode(payload.read_text(encoding="ascii")))) as z:
-              nombres = z.namelist()
+          nombres_partes = [f"payload-{i:02d}.part" for i in range(1, 7)]
+          b64 = "".join((raiz / n).read_text(encoding="ascii") for n in nombres_partes)
+          with zipfile.ZipFile(io.BytesIO(base64.b64decode(b64, validate=True))) as z:
               prefijo = "Cargador_Trazabilidad_Local/"
-              assert nombres and all(n.startswith(prefijo) for n in nombres)
+              assert z.namelist() and all(n.startswith(prefijo) for n in z.namelist())
               for info in z.infolist():
                   if info.is_dir():
                       continue
-                  relative = Path(info.filename[len(prefijo):])
-                  assert relative.parts and all(x not in ("..", ".") for x in relative.parts)
-                  salida = raiz / relative
+                  nombre = Path(info.filename[len(prefijo):])
+                  assert nombre.parts and not any(x in ("..", ".") for x in nombre.parts)
+                  salida = raiz / nombre
                   salida.parent.mkdir(parents=True, exist_ok=True)
-                  with z.open(info) as origen, salida.open("wb") as destino:
-                      shutil.copyfileobj(origen, destino)
-          payload.unlink()
-          (raiz / ".github/workflows/import-payload.yml").unlink()
+                  with z.open(info) as f, salida.open("wb") as dest:
+                      shutil.copyfileobj(f, dest)
+          for n in nombres_partes + ["source_payload.b64", ".github/workflows/import-payload.yml"]:
+              (raiz / n).unlink()
           PY
-      - name: Publicar archivos fuente
+      - name: Guardar versión importada
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
