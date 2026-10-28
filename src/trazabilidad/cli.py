@@ -52,8 +52,17 @@ def run(argv=None):
         print(f'Periodo: {plan.period}; propias: {len(plan.own)}; terceros: {len(plan.third)}')
         for key, total in plan.totals.items():
             print(f'  {key}: {total["tm_original"]} TM originales; {total["tm_normalizada"]} TM normalizadas; diferencia={total["diferencia"]}')
-        for issue in plan.issues:
-            print(f'  {issue.level} {issue.sheet} fila {issue.row} campo {issue.field}: {issue.message}')
+        # Mostrar primero los bloqueos: los avisos repetidos pueden ocultarlos en cmd.
+        blockers = plan.blockers
+        warnings = [i for i in plan.issues if i.level != 'ERROR']
+        print(f'Incidencias: {len(blockers)} bloqueos (ERROR); {len(warnings)} avisos (AVISO).')
+        if blockers:
+            print('\n========== ERRORES QUE DEBES CORREGIR ==========')
+            for issue in blockers:
+                print(f'ERROR {issue.sheet} fila {issue.row} campo {issue.field}: {issue.message}')
+            print('================================================\n')
+        if warnings:
+            print('Los avisos no bloqueantes se detallan en el informe; no es necesario corregirlos todos.')
         if args.command == 'validar':
             report = write_report(plan, config.report_dir)
             print('Informe:', report)
