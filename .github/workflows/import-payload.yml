@@ -1,0 +1,46 @@
+name: Importar versión 0.1.0
+on:
+  push:
+    paths:
+      - 'source_payload.b64'
+permissions:
+  contents: write
+jobs:
+  importar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extraer fuente revisada
+        run: |
+          python - <<'PY'
+          import base64
+          import io
+          import shutil
+          import zipfile
+          from pathlib import Path
+
+          raiz = Path.cwd()
+          payload = raiz / "source_payload.b64"
+          with zipfile.ZipFile(io.BytesIO(base64.b64decode(payload.read_text(encoding="ascii")))) as z:
+              nombres = z.namelist()
+              prefijo = "Cargador_Trazabilidad_Local/"
+              assert nombres and all(n.startswith(prefijo) for n in nombres)
+              for info in z.infolist():
+                  if info.is_dir():
+                      continue
+                  relative = Path(info.filename[len(prefijo):])
+                  assert relative.parts and all(x not in ("..", ".") for x in relative.parts)
+                  salida = raiz / relative
+                  salida.parent.mkdir(parents=True, exist_ok=True)
+                  with z.open(info) as origen, salida.open("wb") as destino:
+                      shutil.copyfileobj(origen, destino)
+          payload.unlink()
+          (raiz / ".github/workflows/import-payload.yml").unlink()
+          PY
+      - name: Publicar archivos fuente
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: publicar cargador de trazabilidad v0.1.0"
+          git push origin HEAD:main
