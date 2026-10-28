@@ -171,6 +171,15 @@ class FormAdapter:
         for field in missing:
             self.stats['automaticos_pendientes'].append(f'{title} fila {record.excel_row}: {field}')
 
+    @staticmethod
+    def _known_empty_selection(field, value):
+        """Valores iniciales conocidos del selector; NO es el RSPO predeterminado.
+
+        No tratar como vacíos nombres, IDs, volúmenes ni otros valores editables.
+        Un selector con SG/MB/IP sigue representando información preexistente.
+        """
+        return (field == 'rspo' and value == 'NO') or (field == 'poligonos' and value == '--')
+
     def _existing_mismatch(self, title, records, cols, checkpoints, resume):
         # Inspeccionar antes de escribir; incluso una fila parcialmente llena puede ser del usuario.
         rows = self._rows(title)
@@ -179,13 +188,24 @@ class FormAdapter:
             for field in cols:
                 if field in AUTO_FIELDS:
                     continue
-                v = self._get_value(self._element(title, index, field, cols))
-                if v and not (field == 'poligonos' and v == '--'):
-                    values.append((field, v))
+                element = self._element(title, index, field, cols)
+                v = self._get_value(element)
+                if not v:
+                    continue
+                # El selector RSPO puede abrir en NO y el de polígonos en --.
+                # Solo son valores iniciales seguros si se trata de un SELECT;
+                # no ignorar un texto literal NO que alguien escribió en un input.
+                if (self._known_empty_selection(field, v)
+                        and element.evaluate('(e) => e.tagName.toLowerCase()') == 'select'):
+                    continue
+                values.append(field)
             if not values:
                 continue
             if not resume or index >= len(records) or not checkpoints.has(records[index], index):
-                raise FormMismatch(f'{title} tiene valores preexistentes en fila web {index+1}. No se sobrescriben.')
+                fields = ', '.join(values)
+                raise FormMismatch(
+                    f'{title} tiene valores preexistentes en fila web {index+1} '
+                    f'(campos: {fields}). No se sobrescriben.')
             diffs = self._read_all_fields(title, index, records[index], cols)
             if diffs:
                 raise FormMismatch(f'{title} fila {index+1}: DOM diferente del checkpoint. Detenido sin sobrescribir.')
@@ -197,7 +217,7 @@ class FormAdapter:
         self._existing_mismatch(title, [plan.mill], cols, checkpoints, resume)
         input_operator = self.frame.locator('#nombre-diligenciador')
         existing_operator = input_operator.input_value().strip()
-        if existing_operator and (not resume or existing_operator != plan.operator):
+        if existing_operator and existing_operator != plan.operator:
             raise FormMismatch('El nombre del diligenciador ya contiene datos incompatibles.')
         if not existing_operator:
             input_operator.fill(plan.operator)

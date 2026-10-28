@@ -90,3 +90,12 @@ Con ZIP: extrae la nueva versión en **otra carpeta**, pero **antes** copia con 
 - Estas pruebas **no sustituyen** una validación contra el formulario real. No existe ninguna prueba que envíe un formulario real.
 
 **Dependencias fijadas:** Python 3.13; `openpyxl==3.1.5`; `playwright==1.57.0`; `pytest==9.0.2`; `tzdata==2026.2` para zonas horarias en Windows. Se fijan versiones presentes y comprobadas en el entorno de desarrollo. El paquete Playwright dispone de versiones más recientes; actualizar las dependencias implica repetir pruebas antes de distribuir.
+
+
+## 9. Detección de formulario nuevo: corrección del 28/10/2026
+
+Algunos formularios muestran la selección inicial `NO` en el desplegable RSPO. La comprobación de datos preexistentes ahora reconoce `NO` en un **selector** RSPO y `--` en un selector de polígonos como valores iniciales compatibles con una fila vacía. No descarta información de otros campos editables. Sigue bloqueando datos reales preexistentes y no permite enviar el formulario.
+
+Si una fila todavía aparece como ocupada, el mensaje indica los **nombres de los campos** que provocan el bloqueo, sin mostrar sus valores. No borres ni sobrescribas esos datos sin revisarlos. Esta corrección está cubierta por pruebas unitarias y **todavía requiere comprobarse en el formulario real**.
+
+Para actualizar una instalación descargada como ZIP sin reinstalar dependencias, reemplaza únicamente `src/trazabilidad/form_adapter.py` por el archivo de la rama `main` del repositorio. Cierra primero cualquier ventana del cargador y conserva `config.local.toml` y `.local/`.
