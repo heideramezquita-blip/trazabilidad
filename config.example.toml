@@ -1,0 +1,12 @@
+[cargador]
+# Copia a config.local.toml y pega exclusivamente aquí la URL autorizada.
+url = "https://script.google.com/macros/s/REEMPLAZAR_CON_ID_AUTORIZADO/exec"
+browser = "msedge"
+profile_dir = ".local/browser-profile"
+report_dir = ".local/reports"
+control_timeout_ms = 15000
+automatic_timeout_ms = 10000
+pause_between_rows_ms = 0
+decimal_separator = "auto" # auto / dot / comma; nunca adivinar 1.234
+third_zero_year = "error" # error / empty / preserve: decisión explícita
+# year_override_own = 2019 # SOLO si se autoriza para ese archivo

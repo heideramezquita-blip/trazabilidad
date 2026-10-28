@@ -1,0 +1,71 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Simulador exclusivamente local</title>
+<style>
+ body {font-family:Arial,sans-serif;font-size:12px} table {border-collapse:collapse} th,td {border:1px solid #bbb;padding:3px}
+ th {background:#e4ecf4} input{width:110px} select{width:100px}.tab[hidden]{display:none}
+</style>
+<h2>Formulario SIMULADO - EXTRACTORA</h2>
+<button type="button" onclick="tab('principal')">1. Panel Principal</button>
+<button type="button" onclick="tab('propias')">Plantaciones Propias</button>
+<button type="button" onclick="tab('terceros')">Plantaciones de Terceros</button>
+<div id="principal" class="tab">
+ <label>Periodo: <input id="periodo-reporte" value="Q3 - 2026" readonly></label>
+ <label>Fecha sitio: <input id="fecha-actual" value="2026-10-27" readonly></label>
+ <label>Diligenciador: <input id="nombre-diligenciador"></label>
+ <table id="table-panel-ext"></table>
+</div>
+<div id="propias" class="tab" hidden><table id="table-PlantacionesPropias"></table><button type="button" onclick="appendRow('table-PlantacionesPropias')">+ Agregar Fila</button></div>
+<div id="terceros" class="tab" hidden><table id="table-PlantacionesdeTerceros"></table><button type="button" onclick="appendRow('table-PlantacionesdeTerceros')">+ Agregar Fila</button></div>
+<section>Adjuntar Polígonos (Shapefiles): <input type="file" disabled> <button disabled>Subir Archivos</button></section>
+<button type="button" id="send-button" onclick="window.submitCounter++;">🚀 COMPLETAR Y ENVIAR</button>
+<script>
+window.submitCounter = 0;
+window.simulateDecimalBug = false;
+const headersMill = ['#','UML ID','Empresa matriz','Empresa del molino','Nombre del Molino','Certificación RSPO','Otras certificaciones','Latitud','Longitud','Dirección','Departamento','Municipio','País','% Propias','% Terceros','Volumen CPO (TM)','Volumen PKO (TM)'];
+const namesMill = ['row','uml_id','empresa_matriz','empresa_molino','molino','rspo','otras_certificaciones','latitud','longitud','direccion','departamento','municipio','pais','pct_propias','pct_terceros','cpo_tm','pko_tm'];
+const headersPlant = ['#','Tipo Plantación','Empresa matriz','Nombre de Plantación','ID Plantación','Certificación RSPO','Área Total (Ha)','Latitud','Longitud','Municipio','Departamento','País','Otras certificaciones','Año Certificación','Fruto entregado (TM)','% Estimado','¿Polígonos?'];
+const namesPlant = ['row','tipo','empresa_matriz','plantacion','id_plantacion','rspo','area_ha','latitud','longitud','municipio','departamento','pais','otras_certificaciones','anio_certificacion','fruto_tm','pct_estimado','poligonos'];
+const automatic = ['row','tipo','municipio','departamento','pais','pct_estimado'];
+function setup(id, headers, names) {
+ const table=document.getElementById(id); table.dataset.fields=JSON.stringify(names);
+ const thead=table.createTHead();const tr=thead.insertRow();
+ headers.forEach(s=>{const th=document.createElement('th');th.textContent=s;tr.appendChild(th)});
+ table.createTBody();appendRow(id);
+}
+function appendRow(id) {
+ const table=document.getElementById(id), fields=JSON.parse(table.dataset.fields), tbody=table.tBodies[0];
+ const tr=tbody.insertRow();
+ fields.forEach((field,col)=>{
+  const td=tr.insertCell();
+  if(field==='row'){td.textContent=tbody.rows.length;return}
+  let control;
+  if(field==='rspo'||field==='poligonos') {
+   control=document.createElement('select'); const options=field==='rspo'?['','NO','MB','SG','IP']:['--','NO','SI'];
+   options.forEach(v=>{let o=document.createElement('option');o.value=v;o.text=v;control.add(o)});
+  } else {control=document.createElement('input');control.type='text'}
+  if(automatic.includes(field))control.readOnly=true;
+  control.dataset.field=field;
+  control.addEventListener('blur',()=>{
+    if(window.simulateDecimalBug && field==='fruto_tm'){
+      if(control.value.includes('.'))control.value=control.value.replace('.','');
+      else if(control.value.includes(','))control.value=control.value.replace(',','.');
+    }
+    if(field==='latitud'||field==='longitud')updateGeo(tr,table.id);
+  });
+  td.appendChild(control);
+ });
+ if(id==='table-PlantacionesPropias')tr.querySelector('[data-field="tipo"]').value='PROPIA';
+ if(id==='table-PlantacionesdeTerceros')tr.querySelector('[data-field="tipo"]').value='TERCERO';
+}
+function updateGeo(tr,tableId){
+ const lat=tr.querySelector('[data-field="latitud"]')?.value;
+ const lon=tr.querySelector('[data-field="longitud"]')?.value;
+ if(lat&&lon){
+   ['departamento','municipio','pais'].forEach((f,i)=>tr.querySelector(`[data-field="${f}"]`).value=['DEPARTAMENTO FICTICIO','MUNICIPIO FICTICIO','COLOMBIA'][i]);
+   const percent=tr.querySelector('[data-field="pct_estimado"]');if(percent)percent.value='10.00';
+ }
+}
+function tab(name){document.querySelectorAll('.tab').forEach(x=>x.hidden=x.id!==name)}
+setup('table-panel-ext',headersMill,namesMill);
+setup('table-PlantacionesPropias',headersPlant,namesPlant);
+setup('table-PlantacionesdeTerceros',headersPlant,namesPlant);
+</script></html>

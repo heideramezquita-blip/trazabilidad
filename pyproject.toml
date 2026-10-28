@@ -1,0 +1,11 @@
+[project]
+name = "cargador-trazabilidad-local"
+version = "0.1.0"
+description = "Carga local de trazabilidad con revisión y envío humanos"
+requires-python = ">=3.13,<3.14"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+markers = ["browser: utiliza un Chromium de prueba local sin enviar datos"]

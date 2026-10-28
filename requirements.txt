@@ -1,0 +1,4 @@
+openpyxl==3.1.5
+playwright==1.57.0
+pytest==9.0.2
+tzdata==2026.2
