@@ -35,8 +35,8 @@ HEADERS_PLANT = {
 AUTO_FIELDS = {'tipo', 'municipio', 'departamento', 'pais', 'pct_estimado'}
 TEXT_FIELDS = {'uml_id', 'empresa_matriz', 'empresa_molino', 'molino', 'otras_certificaciones',
                'direccion', 'plantacion', 'id_plantacion'}
-DECIMAL_FIELDS = {'latitud': 6, 'longitud': 6, 'cpo_tm': 2, 'pko_tm': 2, 'fruto_tm': 2}
-NUMERIC_OTHER = {'area_ha', 'pct_propias', 'pct_terceros'}
+DECIMAL_FIELDS = {'latitud': 6, 'longitud': 6, 'area_ha': 2, 'cpo_tm': 2, 'pko_tm': 2, 'fruto_tm': 2}
+NUMERIC_OTHER = {'pct_propias', 'pct_terceros'}
 SELECT_FIELDS = {'rspo', 'poligonos'}
 
 @dataclass

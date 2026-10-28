@@ -39,6 +39,38 @@ def test_large_workbook(tmp_path):
     assert plan.own[0].values['longitud'] == '-73.544048'
 
 
+
+def test_area_round_half_up_in_both_plantation_sheets(tmp_path):
+    p = tmp_path / 'areas ficticias.xlsx'
+    basic(p, own=3, third=2)
+    book = load_workbook(p)
+    own = book['Plantaciones Propias']
+    third = book['Plantaciones de Terceros']
+    own['G6'] = 1.005
+    own['G7'] = 2.994
+    own['G8'] = 0
+    third['G6'] = 100.205
+    third['G7'] = None
+    book.save(p)
+
+    original = p.read_bytes()
+    plan = read_plan(p, Config())
+    assert not plan.blockers, plan.blockers
+    assert [r.values['area_ha'] for r in plan.own] == ['1.01', '2.99', '0.00']
+    assert [r.values['area_ha'] for r in plan.third] == ['100.21', None]
+    assert original == p.read_bytes()
+
+
+def test_generated_template_displays_area_with_two_decimals(tmp_path):
+    p = tmp_path / 'plantilla_v2.xlsx'
+    create_template(p)
+    book = load_workbook(p)
+    for title in ('Plantaciones Propias', 'Plantaciones de Terceros'):
+        assert book[title]['G6'].number_format == '0.00'
+    assert book['Panel Principal']['P11'].number_format == '0.00'
+    assert book['Panel Principal']['H11'].number_format == '0.000000'
+
+
 def test_id_duplicates_and_empty_vs_zero(tmp_path):
     p=tmp_path/'dups.xlsx';basic(p,2,0)
     b=load_workbook(p); w=b['Plantaciones Propias']

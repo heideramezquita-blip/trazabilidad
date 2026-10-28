@@ -33,7 +33,7 @@ def create_template(path, example=False):
     main['B9'].font = Font(italic=True, color='52657C')
     main['B14'] = 'INSTRUCCIONES: solo la fila 11 contiene el registro del molino.'
     main['B15'] = 'Fecha C6: referencia del archivo; la fecha efectiva de envío es la del sitio.'
-    main['B16'] = 'Formato visible ≠ redondeo real: el cargador normaliza TM y coordenadas.'
+    main['B16'] = 'Formato visible ≠ redondeo real: el cargador normaliza TM, área y coordenadas.'
     main['B17'] = 'Los datos no se envían automáticamente; revisa la página antes de enviar.'
     if example:
         main['C5'] = 'Q3 - 2026'
@@ -59,7 +59,7 @@ def create_template(path, example=False):
                 cell.alignment = Alignment(vertical='center')
                 if col in ('H', 'I'):
                     cell.number_format = '0.000000'
-                if col in (('P', 'Q') if ws == main else ('O',)):
+                if col in (('P', 'Q') if ws == main else ('G', 'O')):
                     cell.number_format = '0.00'
                 if col == ('B' if ws == main else 'E'):
                     cell.number_format = '@'
